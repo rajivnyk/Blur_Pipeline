@@ -1,0 +1,19 @@
+# Node
+frontend/node_modules/
+
+# ML weights
+backend/weights/
+backend/gfpgan/weights/
+
+# Python
+backend/__pycache__
+*.pyc
+
+# Outputs
+outputs/
+logs/
+
+# Model files
+*.pth
+*.pt
+*.ckpt

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(ls \"c:/Users/Sanjivkumar Naik/.claude/projects/c--Users-Sanjivkumar-Naik-Documents-Final-Yr-Project-Project/memory/\" 2>/dev/null || echo \"dir_missing\")",
+      "Read(//c/Users/Sanjivkumar Naik/.claude/projects/c--Users-Sanjivkumar-Naik-Documents-Final-Yr-Project-Project/**)"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+# Install PyTorch first from https://pytorch.org/get-started/locally/
+# e.g. pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Then install the rest:
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.12
+
+# Restoration models
+realesrgan==0.3.0
+basicsr==1.4.2          # includes SwinIR architecture (basicsr.archs.swinir_arch)
+
+# Image processing
+Pillow>=10.3.0
+opencv-python==4.10.0.84
+opencv-contrib-python==4.10.0.84   # required for cv2.detailEnhance
+numpy>=1.24.0
+torchvision>=0.17.0
+simple-lama-inpainting==0.1.2
+
+# RAG / Semantic Search
+chromadb>=0.4.0
+git+https://github.com/openai/CLIP.git

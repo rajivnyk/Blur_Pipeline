@@ -1,0 +1,7 @@
+# Install PyTorch separately first:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+numpy>=1.24.0
+Pillow>=10.3.0
+opencv-python==4.10.0.84
+torchvision>=0.17.0
