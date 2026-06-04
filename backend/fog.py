@@ -108,12 +108,15 @@ def dcp_dehaze(img: Image.Image, patch: int = 15, omega: float = 0.95) -> Image.
     flat = dark.flatten()
     n    = max(1, flat.size // 1000)          # top 0.1 %
     idx  = np.argpartition(flat, -n)[-n:]    # fast partial sort
-    h, w = dark.shape
-    A    = max(bgr_f[i // w, i % w].max() for i in idx)
-    A    = float(np.clip(A, 0.3, 1.0))
+    top_pixels = bgr_f.reshape(-1, 3)[idx]
+    A    = np.mean(top_pixels, axis=0)       # 3-channel atmospheric light [B, G, R]
+    A    = np.clip(A, 0.3, 1.0)              # Avoid div-by-zero or extreme values
 
     # ── 3. Raw transmission t = 1 - ω · dark / A ────────────────────────────
-    t_raw = np.clip(1.0 - omega * dark / A, 0.1, 1.0).astype(np.float32)
+    norm_bgr = bgr_f / A
+    dark_norm = cv2.erode(norm_bgr.min(axis=2),
+                          np.ones((patch, patch), np.uint8))
+    t_raw = np.clip(1.0 - omega * dark_norm, 0.1, 1.0).astype(np.float32)
 
     # ── 4. Guided-filter refine (pure NumPy, no ximgproc) ───────────────────
     gray  = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
@@ -213,24 +216,27 @@ class FogRemovalPipeline:
         # 2. CLAHE on L channel
         lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        l   = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(l)
+        # Reduced clipLimit for a more natural, less dramatic contrast
+        l   = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8)).apply(l)
         bgr = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
 
         # 3. Adaptive unsharp masking
         gray    = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-        strength = 1.45 if lap_var < 80 else (1.25 if lap_var < 200 else 1.10)
+        # Softer sharpening for a more natural look
+        strength = 1.30 if lap_var < 80 else (1.15 if lap_var < 200 else 1.05)
         blurred  = cv2.GaussianBlur(bgr, (0, 0), 1.2)
         bgr      = cv2.addWeighted(bgr, strength, blurred, -(strength - 1.0), 0)
         bgr      = np.clip(bgr, 0, 255).astype(np.uint8)
 
         # 4. Saturation restore (fog washes colours out)
         hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
-        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.18, 0, 255)
+        # Gentle 5% saturation boost instead of 18% to avoid unnatural neon colors
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.05, 0, 255)
         bgr = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
 
-        # 5. Blend: 70 % processed + 30 % original (natural look)
-        bgr = cv2.addWeighted(original_bgr, 0.30, bgr, 0.70, 0)
+        # 5. Blend: 60 % processed + 40 % original (natural look)
+        bgr = cv2.addWeighted(original_bgr, 0.40, bgr, 0.60, 0)
 
         return _bgr_to_pil(bgr)
 
